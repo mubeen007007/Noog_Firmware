@@ -1,0 +1,21 @@
+.settings/
+Debug/
+Release/
+
+*.elf
+*.bin
+*.hex
+*.map
+*.list
+*.o
+*.d
+*.su
+*.cyclo
+
+*.launch
+
+# OS/editor clutter
+Thumbs.db
+Desktop.ini
+*.tmp
+*.log
