@@ -10,7 +10,7 @@
 #define SHT40_TX_TIMEOUT_MS       100U
 #define SHT40_RX_TIMEOUT_MS       100U
 
-extern I2C_HandleTypeDef hi2c2;
+extern I2C_HandleTypeDef hi2c1;
 
 static uint8_t SHT40_Crc8(const uint8_t *data, uint8_t length);
 
@@ -33,7 +33,7 @@ HAL_StatusTypeDef SHT40_SoftReset(void)
     return HAL_ERROR;
   }
 
-  if (HAL_I2C_Master_Transmit(&hi2c2, SHT40_I2C_ADDRESS, &cmd, 1U, SHT40_TX_TIMEOUT_MS) != HAL_OK)
+  if (HAL_I2C_Master_Transmit(&hi2c1, SHT40_I2C_ADDRESS, &cmd, 1U, SHT40_TX_TIMEOUT_MS) != HAL_OK)
   {
     return HAL_ERROR;
   }
@@ -66,14 +66,14 @@ HAL_StatusTypeDef SHT40_ReadMeasurement(SHT40_Measurement_t *measurement)
     return HAL_ERROR;
   }
 
-  if (HAL_I2C_Master_Transmit(&hi2c2, SHT40_I2C_ADDRESS, &cmd, 1U, SHT40_TX_TIMEOUT_MS) != HAL_OK)
+  if (HAL_I2C_Master_Transmit(&hi2c1, SHT40_I2C_ADDRESS, &cmd, 1U, SHT40_TX_TIMEOUT_MS) != HAL_OK)
   {
     return HAL_ERROR;
   }
 
   HAL_Delay(SHT40_MEASURE_DELAY_MS);
 
-  if (HAL_I2C_Master_Receive(&hi2c2, SHT40_I2C_ADDRESS, raw_data, sizeof(raw_data), SHT40_RX_TIMEOUT_MS) != HAL_OK)
+  if (HAL_I2C_Master_Receive(&hi2c1, SHT40_I2C_ADDRESS, raw_data, sizeof(raw_data), SHT40_RX_TIMEOUT_MS) != HAL_OK)
   {
     return HAL_ERROR;
   }

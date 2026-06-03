@@ -90,7 +90,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_I2C1_CLK_ENABLE();
 
-    GPIO_InitStruct.Pin = I2C1_SCL_SENS_Pin|I2C1_SDA_SENS_Pin;
+    GPIO_InitStruct.Pin = I2C1_SCL_SHT_RTC_Pin|I2C1_SDA_SHT_RTC_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -102,7 +102,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_I2C2_CLK_ENABLE();
 
-    GPIO_InitStruct.Pin = I2C2_SCL_RTC_Pin|I2C2_SDA_RTC_Pin;
+    GPIO_InitStruct.Pin = I2C2_SCL_SENS_FG_Pin|I2C2_SDA_SENS_FG_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -115,6 +115,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_I2C3_CLK_ENABLE();
 
+    /* I2C3 SCL is routed on PA8 for the MEMS bus. */
     GPIO_InitStruct.Pin = SCL_MEMS_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
@@ -122,7 +123,12 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
     GPIO_InitStruct.Alternate = GPIO_AF4_I2C3;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+    /* I2C3 SDA is routed on PC9 for the MEMS bus. */
     GPIO_InitStruct.Pin = SDA_MEMS_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF4_I2C3;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
   }
 }
