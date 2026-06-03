@@ -27,6 +27,7 @@
 #include "noog_power.h"
 #include "ds3231.h"
 #include "max17048.h"
+#include "max_m10s.h"
 #include "sht40.h"
 
 /* USER CODE END Includes */
@@ -137,6 +138,7 @@ int main(void)
   NOOG_Leds_Init();
   (void)DS3231_Init();
   (void)MAX17048_Init();
+  (void)MAXM10S_Init();
   (void)SHT40_Init();
 
   /* USER CODE END 2 */
@@ -425,7 +427,7 @@ static void MX_UART4_Init(void)
 static void MX_USART2_UART_Init(void)
 {
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 9600;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;

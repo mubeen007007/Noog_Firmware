@@ -1,4 +1,5 @@
 #include "noog_power.h"
+#include "noog_debug.h"
 
 typedef struct
 {
@@ -20,9 +21,11 @@ static const NOOG_PowerRailConfig_t noog_power_rail_map[] = {
 };
 
 static bool NOOG_Power_IsValidRail(NOOG_PowerRail_t rail);
+static const char *NOOG_Power_RailName(NOOG_PowerRail_t rail);
 
 void NOOG_Power_Init(void)
 {
+  NOOG_LOG("POWER", "Initializing power rails");
   NOOG_Power_DisableAll();
 }
 
@@ -30,6 +33,7 @@ HAL_StatusTypeDef NOOG_Power_Set(NOOG_PowerRail_t rail, bool enable)
 {
   if (!NOOG_Power_IsValidRail(rail))
   {
+    NOOG_LOG("POWER", "Invalid rail %lu", (unsigned long)rail);
     return HAL_ERROR;
   }
 
@@ -37,6 +41,8 @@ HAL_StatusTypeDef NOOG_Power_Set(NOOG_PowerRail_t rail, bool enable)
   HAL_GPIO_WritePin(noog_power_rail_map[rail].port,
                     noog_power_rail_map[rail].pin,
                     enable ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+  NOOG_LOG("POWER", "%s -> %s", NOOG_Power_RailName(rail), enable ? "ON" : "OFF");
 
   return HAL_OK;
 }
@@ -66,4 +72,33 @@ static bool NOOG_Power_IsValidRail(NOOG_PowerRail_t rail)
 {
   return (rail >= NOOG_POWER_SHT) &&
          ((uint32_t)rail < (sizeof(noog_power_rail_map) / sizeof(noog_power_rail_map[0])));
+}
+
+static const char *NOOG_Power_RailName(NOOG_PowerRail_t rail)
+{
+  switch (rail)
+  {
+    case NOOG_POWER_SHT:
+      return "SHT";
+    case NOOG_POWER_W25:
+      return "W25";
+    case NOOG_POWER_MEM:
+      return "MEM";
+    case NOOG_POWER_SD:
+      return "SD";
+    case NOOG_POWER_GPS:
+      return "GPS";
+    case NOOG_POWER_FUEL_GAUGE:
+      return "FUEL_GAUGE";
+    case NOOG_POWER_RTC:
+      return "RTC";
+    case NOOG_POWER_LORA:
+      return "LORA";
+    case NOOG_POWER_LED:
+      return "LED";
+    case NOOG_POWER_SENSORS:
+      return "SENSORS";
+    default:
+      return "UNKNOWN";
+  }
 }

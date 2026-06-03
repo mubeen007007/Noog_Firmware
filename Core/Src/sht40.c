@@ -1,4 +1,5 @@
 #include "sht40.h"
+#include "noog_debug.h"
 #include "noog_power.h"
 
 #define SHT40_I2C_ADDRESS         (0x44U << 1)
@@ -30,15 +31,18 @@ HAL_StatusTypeDef SHT40_SoftReset(void)
 
   if (!SHT40_IsEnabled())
   {
+    NOOG_LOG("SHT40", "Soft reset requested while sensor power is off");
     return HAL_ERROR;
   }
 
   if (HAL_I2C_Master_Transmit(&hi2c1, SHT40_I2C_ADDRESS, &cmd, 1U, SHT40_TX_TIMEOUT_MS) != HAL_OK)
   {
+    NOOG_LOG("SHT40", "Soft reset transmit failed");
     return HAL_ERROR;
   }
 
   HAL_Delay(SHT40_RESET_DELAY_MS);
+  NOOG_LOG("SHT40", "Soft reset complete");
   return HAL_OK;
 }
 
@@ -46,7 +50,14 @@ HAL_StatusTypeDef SHT40_Init(void)
 {
   SHT40_SetPower(true);
   HAL_Delay(SHT40_POWERUP_DELAY_MS);
-  return SHT40_SoftReset();
+  if (SHT40_SoftReset() != HAL_OK)
+  {
+    NOOG_LOG("SHT40", "Initialization failed");
+    return HAL_ERROR;
+  }
+
+  NOOG_LOG("SHT40", "Initialized on I2C1 address 0x%02X", SHT40_I2C_ADDRESS >> 1);
+  return HAL_OK;
 }
 
 HAL_StatusTypeDef SHT40_ReadMeasurement(SHT40_Measurement_t *measurement)
@@ -58,16 +69,19 @@ HAL_StatusTypeDef SHT40_ReadMeasurement(SHT40_Measurement_t *measurement)
 
   if (measurement == NULL)
   {
+    NOOG_LOG("SHT40", "ReadMeasurement called with NULL output");
     return HAL_ERROR;
   }
 
   if (!SHT40_IsEnabled())
   {
+    NOOG_LOG("SHT40", "ReadMeasurement requested while sensor power is off");
     return HAL_ERROR;
   }
 
   if (HAL_I2C_Master_Transmit(&hi2c1, SHT40_I2C_ADDRESS, &cmd, 1U, SHT40_TX_TIMEOUT_MS) != HAL_OK)
   {
+    NOOG_LOG("SHT40", "Measurement command transmit failed");
     return HAL_ERROR;
   }
 
@@ -75,11 +89,13 @@ HAL_StatusTypeDef SHT40_ReadMeasurement(SHT40_Measurement_t *measurement)
 
   if (HAL_I2C_Master_Receive(&hi2c1, SHT40_I2C_ADDRESS, raw_data, sizeof(raw_data), SHT40_RX_TIMEOUT_MS) != HAL_OK)
   {
+    NOOG_LOG("SHT40", "Measurement read failed");
     return HAL_ERROR;
   }
 
   if ((SHT40_Crc8(&raw_data[0], 2U) != raw_data[2]) || (SHT40_Crc8(&raw_data[3], 2U) != raw_data[5]))
   {
+    NOOG_LOG("SHT40", "CRC check failed");
     return HAL_ERROR;
   }
 
@@ -98,6 +114,7 @@ HAL_StatusTypeDef SHT40_ReadMeasurement(SHT40_Measurement_t *measurement)
     measurement->humidity_rh = 100.0f;
   }
 
+  NOOG_LOG("SHT40", "T=%.2f C RH=%.2f %%", measurement->temperature_c, measurement->humidity_rh);
   return HAL_OK;
 }
 

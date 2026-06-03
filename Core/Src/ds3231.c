@@ -1,4 +1,5 @@
 #include "ds3231.h"
+#include "noog_debug.h"
 #include "noog_power.h"
 
 #define DS3231_I2C_ADDRESS           (0x68U << 1)
@@ -34,6 +35,7 @@ static bool DS3231_IsValidDateTime(const DS3231_DateTime_t *date_time);
 void DS3231_SetPower(bool enable)
 {
   (void)NOOG_Power_Set(NOOG_POWER_RTC, enable);
+  NOOG_LOG("DS3231", "RTC rail %s", enable ? "enabled" : "disabled");
 }
 
 bool DS3231_IsEnabled(void)
@@ -51,6 +53,7 @@ HAL_StatusTypeDef DS3231_Init(void)
 
   if (DS3231_Read(DS3231_REG_CONTROL, &control, 1U) != HAL_OK)
   {
+    NOOG_LOG("DS3231", "Failed to read control register");
     return HAL_ERROR;
   }
 
@@ -59,11 +62,13 @@ HAL_StatusTypeDef DS3231_Init(void)
 
   if (DS3231_Write(DS3231_REG_CONTROL, &control, 1U) != HAL_OK)
   {
+    NOOG_LOG("DS3231", "Failed to write control register");
     return HAL_ERROR;
   }
 
   if (DS3231_Read(DS3231_REG_STATUS, &status, 1U) != HAL_OK)
   {
+    NOOG_LOG("DS3231", "Failed to read status register");
     return HAL_ERROR;
   }
 
@@ -71,9 +76,11 @@ HAL_StatusTypeDef DS3231_Init(void)
 
   if (DS3231_Write(DS3231_REG_STATUS, &status, 1U) != HAL_OK)
   {
+    NOOG_LOG("DS3231", "Failed to clear status flags");
     return HAL_ERROR;
   }
 
+  NOOG_LOG("DS3231", "Initialized on I2C1 address 0x%02X, status=0x%02X", DS3231_I2C_ADDRESS >> 1, status);
   return HAL_OK;
 }
 
@@ -83,11 +90,13 @@ HAL_StatusTypeDef DS3231_GetDateTime(DS3231_DateTime_t *date_time)
 
   if ((date_time == NULL) || !DS3231_IsEnabled())
   {
+    NOOG_LOG("DS3231", "GetDateTime failed: invalid output or RTC power off");
     return HAL_ERROR;
   }
 
   if (DS3231_Read(DS3231_REG_TIME, raw, sizeof(raw)) != HAL_OK)
   {
+    NOOG_LOG("DS3231", "Failed to read date/time registers");
     return HAL_ERROR;
   }
 
@@ -109,6 +118,13 @@ HAL_StatusTypeDef DS3231_GetDateTime(DS3231_DateTime_t *date_time)
   date_time->month = DS3231_BcdToDecimal((uint8_t)(raw[5] & 0x1FU));
   date_time->year = (uint16_t)(2000U + (uint16_t)DS3231_BcdToDecimal(raw[6]) + (((raw[5] & 0x80U) != 0U) ? 100U : 0U));
 
+  NOOG_LOG("DS3231", "DateTime %04u-%02u-%02u %02u:%02u:%02u",
+           date_time->year,
+           date_time->month,
+           date_time->day_of_month,
+           date_time->hours,
+           date_time->minutes,
+           date_time->seconds);
   return HAL_OK;
 }
 
@@ -119,6 +135,7 @@ HAL_StatusTypeDef DS3231_SetDateTime(const DS3231_DateTime_t *date_time)
 
   if (!DS3231_IsValidDateTime(date_time) || !DS3231_IsEnabled())
   {
+    NOOG_LOG("DS3231", "SetDateTime failed: invalid input or RTC power off");
     return HAL_ERROR;
   }
 
@@ -137,7 +154,20 @@ HAL_StatusTypeDef DS3231_SetDateTime(const DS3231_DateTime_t *date_time)
     raw[5] |= 0x80U;
   }
 
-  return DS3231_Write(DS3231_REG_TIME, raw, sizeof(raw));
+  if (DS3231_Write(DS3231_REG_TIME, raw, sizeof(raw)) != HAL_OK)
+  {
+    NOOG_LOG("DS3231", "Failed to write date/time");
+    return HAL_ERROR;
+  }
+
+  NOOG_LOG("DS3231", "DateTime set to %04u-%02u-%02u %02u:%02u:%02u",
+           date_time->year,
+           date_time->month,
+           date_time->day_of_month,
+           date_time->hours,
+           date_time->minutes,
+           date_time->seconds);
+  return HAL_OK;
 }
 
 HAL_StatusTypeDef DS3231_GetTemperature(float *temperature_c)
@@ -147,11 +177,13 @@ HAL_StatusTypeDef DS3231_GetTemperature(float *temperature_c)
 
   if ((temperature_c == NULL) || !DS3231_IsEnabled())
   {
+    NOOG_LOG("DS3231", "GetTemperature failed: invalid output or RTC power off");
     return HAL_ERROR;
   }
 
   if (DS3231_Read(DS3231_REG_TEMPERATURE_MSB, raw, sizeof(raw)) != HAL_OK)
   {
+    NOOG_LOG("DS3231", "Failed to read temperature registers");
     return HAL_ERROR;
   }
 
@@ -159,6 +191,7 @@ HAL_StatusTypeDef DS3231_GetTemperature(float *temperature_c)
   value >>= 6;
   *temperature_c = (float)value * 0.25f;
 
+  NOOG_LOG("DS3231", "Temperature %.2f C", *temperature_c);
   return HAL_OK;
 }
 
@@ -166,6 +199,7 @@ HAL_StatusTypeDef DS3231_ReadStatus(uint8_t *status)
 {
   if ((status == NULL) || !DS3231_IsEnabled())
   {
+    NOOG_LOG("DS3231", "ReadStatus failed: invalid output or RTC power off");
     return HAL_ERROR;
   }
 
@@ -178,16 +212,25 @@ HAL_StatusTypeDef DS3231_ClearStatusFlags(uint8_t flags)
 
   if (!DS3231_IsEnabled())
   {
+    NOOG_LOG("DS3231", "ClearStatusFlags failed: RTC power off");
     return HAL_ERROR;
   }
 
   if (DS3231_Read(DS3231_REG_STATUS, &status, 1U) != HAL_OK)
   {
+    NOOG_LOG("DS3231", "Failed to read status before clear");
     return HAL_ERROR;
   }
 
   status &= (uint8_t)~flags;
-  return DS3231_Write(DS3231_REG_STATUS, &status, 1U);
+  if (DS3231_Write(DS3231_REG_STATUS, &status, 1U) != HAL_OK)
+  {
+    NOOG_LOG("DS3231", "Failed to write status during clear");
+    return HAL_ERROR;
+  }
+
+  NOOG_LOG("DS3231", "Cleared status flags mask 0x%02X -> status 0x%02X", flags, status);
+  return HAL_OK;
 }
 
 static HAL_StatusTypeDef DS3231_Read(uint8_t reg, uint8_t *data, uint16_t length)

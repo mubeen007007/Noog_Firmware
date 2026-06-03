@@ -21,6 +21,7 @@
  */
 
 /* Includes */
+#include "main.h"
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -38,6 +39,8 @@ extern int __io_getchar(void) __attribute__((weak));
 
 char *__env[1] = { 0 };
 char **environ = __env;
+
+extern UART_HandleTypeDef huart4;
 
 
 /* Functions */
@@ -80,12 +83,18 @@ __attribute__((weak)) int _read(int file, char *ptr, int len)
 __attribute__((weak)) int _write(int file, char *ptr, int len)
 {
   (void)file;
-  int DataIdx;
 
-  for (DataIdx = 0; DataIdx < len; DataIdx++)
+  if ((ptr == NULL) || (len <= 0))
   {
-    __io_putchar(*ptr++);
+    return 0;
   }
+
+  if (HAL_UART_Transmit(&huart4, (uint8_t *)ptr, (uint16_t)len, HAL_MAX_DELAY) != HAL_OK)
+  {
+    errno = EIO;
+    return -1;
+  }
+
   return len;
 }
 

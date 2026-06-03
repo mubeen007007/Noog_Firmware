@@ -1,4 +1,5 @@
 #include "noog_rgb_led.h"
+#include "noog_debug.h"
 #include "noog_power.h"
 
 static void NOOG_Led_WriteChannel(GPIO_TypeDef *port, uint16_t pin, bool enabled);
@@ -6,6 +7,7 @@ static void NOOG_Led_WriteChannel(GPIO_TypeDef *port, uint16_t pin, bool enabled
 void NOOG_Leds_SetPower(bool enable)
 {
   (void)NOOG_Power_Set(NOOG_POWER_LED, enable);
+  NOOG_LOG("LED", "LED rail %s", enable ? "enabled" : "disabled");
 }
 
 void NOOG_Leds_AllOff(void)
@@ -19,6 +21,7 @@ void NOOG_Leds_Init(void)
 {
   NOOG_Leds_SetPower(true);
   NOOG_Leds_AllOff();
+  NOOG_LOG("LED", "RGB LEDs initialized");
 }
 
 void NOOG_Led_Off(NOOG_LedId_t led)
@@ -54,6 +57,7 @@ void NOOG_Led_SetRgb(NOOG_LedId_t led, bool red, bool green, bool blue)
       break;
 
     default:
+      NOOG_LOG("LED", "Invalid LED id %d", (int)led);
       break;
   }
 }
