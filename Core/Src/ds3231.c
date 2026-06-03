@@ -47,6 +47,7 @@ HAL_StatusTypeDef DS3231_Init(void)
 {
   uint8_t control;
   uint8_t status;
+  bool oscillator_stop_detected;
 
   DS3231_SetPower(true);
   HAL_Delay(DS3231_POWERUP_DELAY_MS);
@@ -72,12 +73,19 @@ HAL_StatusTypeDef DS3231_Init(void)
     return HAL_ERROR;
   }
 
+  oscillator_stop_detected = (status & DS3231_STATUS_OSF) != 0U;
   status &= (uint8_t)~(DS3231_STATUS_OSF | DS3231_STATUS_A1F | DS3231_STATUS_A2F);
 
   if (DS3231_Write(DS3231_REG_STATUS, &status, 1U) != HAL_OK)
   {
     NOOG_LOG("DS3231", "Failed to clear status flags");
     return HAL_ERROR;
+  }
+
+  if (oscillator_stop_detected)
+  {
+    NOOG_LOG("DS3231", "Initialized, but OSF was set and time should be refreshed");
+    return HAL_BUSY;
   }
 
   NOOG_LOG("DS3231", "Initialized on I2C1 address 0x%02X, status=0x%02X", DS3231_I2C_ADDRESS >> 1, status);

@@ -64,7 +64,7 @@ UART_HandleTypeDef huart3;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -260,7 +260,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOB, RESET_STM_GPS_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(GPIOC, LED2_B_Pin|LED3_R_Pin|STM_pin_EN_SENS_Pin|STM_pin_EN_LED_Pin|
                            LED3_G_Pin|LED3_B_Pin|CS_FLASH_ISO_Pin|STM_pin_EN_SD_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(GPIOD, CS_ICM_Pin|CS_BMP_Pin|STM_pin_EN_RTC_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, CS_ICM_Pin|CS_BMP_Pin|STM_pin_EN_RTC_Pin|STM_pin_EN_FG_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(GPIOE, STM_pin_EN_Lora_Pin|Lora_RST_Pin|STM_pin_EN_SHT_Pin|STM_pin_EN_W25_Pin|
                            STM_pin_EN_MEM_Pin|CS_SD_Pin|STM_pin_EN_GPS_Pin, GPIO_PIN_RESET);
 
@@ -277,7 +277,7 @@ static void MX_GPIO_Init(void)
                         LED3_G_Pin|LED3_B_Pin|CS_FLASH_ISO_Pin|STM_pin_EN_SD_Pin;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = CS_ICM_Pin|CS_BMP_Pin|STM_pin_EN_RTC_Pin;
+  GPIO_InitStruct.Pin = CS_ICM_Pin|CS_BMP_Pin|STM_pin_EN_RTC_Pin|STM_pin_EN_FG_Pin;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   GPIO_InitStruct.Pin = STM_pin_EN_Lora_Pin|Lora_RST_Pin|STM_pin_EN_SHT_Pin|STM_pin_EN_W25_Pin|

@@ -1,6 +1,7 @@
 #include "max_m10s.h"
 #include "noog_debug.h"
 #include "noog_power.h"
+#include "cmsis_os.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -59,6 +60,12 @@ static volatile bool max_m10s_pvt_valid;
 static MAXM10S_Pvt_t max_m10s_last_pvt;
 static char max_m10s_version_string[MAX_M10S_VERSION_STRING_MAX_LEN];
 static MAXM10S_RxParser_t max_m10s_rx_parser;
+static volatile uint32_t max_m10s_rx_oversize_count;
+static volatile uint32_t max_m10s_rx_checksum_error_count;
+static volatile uint32_t max_m10s_rx_unknown_message_count;
+static volatile uint32_t max_m10s_rx_short_nav_pvt_count;
+static volatile uint32_t max_m10s_rx_short_mon_ver_count;
+static volatile uint32_t max_m10s_uart_error_count;
 
 void MAXM10S_SetPower(bool enable)
 {
@@ -153,7 +160,9 @@ HAL_StatusTypeDef MAXM10S_SendUbx(uint8_t msg_class, uint8_t msg_id, const uint8
   uint8_t ck_b = 0U;
   uint16_t payload_index;
 
-  if (!MAXM10S_IsEnabled() || (payload_length > 128U))
+  if (!MAXM10S_IsEnabled() ||
+      (payload_length > 128U) ||
+      ((payload_length > 0U) && (payload == NULL)))
   {
     NOOG_LOG("MAX-M10S", "SendUbx failed: invalid state or payload length %u", payload_length);
     return HAL_ERROR;
@@ -197,7 +206,9 @@ bool MAXM10S_GetLastPvt(MAXM10S_Pvt_t *pvt)
     return false;
   }
 
+  taskENTER_CRITICAL();
   *pvt = max_m10s_last_pvt;
+  taskEXIT_CRITICAL();
   return true;
 }
 
@@ -224,7 +235,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
   if (huart->Instance == USART2)
   {
-    NOOG_LOG("MAX-M10S", "UART error 0x%08lX", (unsigned long)huart->ErrorCode);
+    max_m10s_uart_error_count++;
     (void)HAL_UART_Receive_IT(&huart2, (uint8_t *)&max_m10s_rx_byte, 1U);
   }
 }
@@ -297,7 +308,7 @@ static void MAXM10S_RxParser_ProcessByte(uint8_t byte)
 
       if (max_m10s_rx_parser.payload_length > sizeof(max_m10s_rx_parser.payload))
       {
-        NOOG_LOG("MAX-M10S", "Dropped oversized UBX payload length %u", max_m10s_rx_parser.payload_length);
+        max_m10s_rx_oversize_count++;
         MAXM10S_RxParser_Reset();
       }
       else if (max_m10s_rx_parser.payload_length == 0U)
@@ -335,9 +346,7 @@ static void MAXM10S_RxParser_ProcessByte(uint8_t byte)
       }
       else
       {
-        NOOG_LOG("MAX-M10S", "Checksum error for UBX %02X %02X",
-                 max_m10s_rx_parser.msg_class,
-                 max_m10s_rx_parser.msg_id);
+        max_m10s_rx_checksum_error_count++;
       }
       MAXM10S_RxParser_Reset();
       break;
@@ -366,7 +375,7 @@ static void MAXM10S_HandleUbxMessage(uint8_t msg_class, uint8_t msg_id, const ui
   }
   else
   {
-    NOOG_LOG("MAX-M10S", "Received UBX %02X %02X len=%u", msg_class, msg_id, length);
+    max_m10s_rx_unknown_message_count++;
   }
 }
 
@@ -374,7 +383,7 @@ static void MAXM10S_HandleNavPvt(const uint8_t *payload, uint16_t length)
 {
   if (length < MAX_M10S_UBX_NAV_PVT_PAYLOAD_LEN)
   {
-    NOOG_LOG("MAX-M10S", "UBX-NAV-PVT length too short: %u", length);
+    max_m10s_rx_short_nav_pvt_count++;
     return;
   }
 
@@ -402,14 +411,6 @@ static void MAXM10S_HandleNavPvt(const uint8_t *payload, uint16_t length)
                                 (max_m10s_last_pvt.fix_type >= 2U);
   max_m10s_pvt_valid = true;
 
-  NOOG_LOG("MAX-M10S",
-           "PVT fix=%u valid=%u sats=%u lat=%.7f lon=%.7f hAcc=%.3fm",
-           max_m10s_last_pvt.fix_type,
-           max_m10s_last_pvt.valid_fix ? 1U : 0U,
-           max_m10s_last_pvt.num_sv,
-           (double)max_m10s_last_pvt.latitude_deg_e7 / 10000000.0,
-           (double)max_m10s_last_pvt.longitude_deg_e7 / 10000000.0,
-           (double)max_m10s_last_pvt.horizontal_accuracy_mm / 1000.0);
 }
 
 static void MAXM10S_HandleMonVer(const uint8_t *payload, uint16_t length)
@@ -418,7 +419,7 @@ static void MAXM10S_HandleMonVer(const uint8_t *payload, uint16_t length)
 
   if (length < MAX_M10S_UBX_MON_VER_MIN_PAYLOAD_LEN)
   {
-    NOOG_LOG("MAX-M10S", "UBX-MON-VER length too short: %u", length);
+    max_m10s_rx_short_mon_ver_count++;
     return;
   }
 
@@ -438,7 +439,6 @@ static void MAXM10S_HandleMonVer(const uint8_t *payload, uint16_t length)
     }
   }
 
-  NOOG_LOG("MAX-M10S", "Version: %s", max_m10s_version_string);
 }
 
 static uint16_t MAXM10S_ReadU2(const uint8_t *buffer)
