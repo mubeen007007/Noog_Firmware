@@ -162,6 +162,8 @@ void Error_Handler(void);
 #define CS_SD_GPIO_Port GPIOE
 #define STM_pin_EN_GPS_Pin GPIO_PIN_15
 #define STM_pin_EN_GPS_GPIO_Port GPIOE
+#define STM_pin_EN_FG_Pin GPIO_PIN_2
+#define STM_pin_EN_FG_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
 

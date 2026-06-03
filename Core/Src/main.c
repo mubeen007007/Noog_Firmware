@@ -23,6 +23,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "noog_rgb_led.h"
+#include "noog_power.h"
+#include "sht40.h"
 
 /* USER CODE END Includes */
 
@@ -117,6 +120,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  NOOG_Power_Init();
   MX_I2C1_Init();
   MX_I2C2_Init();
   MX_I2C3_Init();
@@ -128,6 +132,8 @@ int main(void)
   MX_USART3_UART_Init();
   MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
+  NOOG_Leds_Init();
+  (void)SHT40_Init();
 
   /* USER CODE END 2 */
 
