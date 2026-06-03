@@ -25,6 +25,8 @@
 /* USER CODE BEGIN Includes */
 #include "noog_rgb_led.h"
 #include "noog_power.h"
+#include "ds3231.h"
+#include "max17048.h"
 #include "sht40.h"
 
 /* USER CODE END Includes */
@@ -133,6 +135,8 @@ int main(void)
   MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
   NOOG_Leds_Init();
+  (void)DS3231_Init();
+  (void)MAX17048_Init();
   (void)SHT40_Init();
 
   /* USER CODE END 2 */
